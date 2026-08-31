@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draft War Room — 2026 Fantasy Board</title>
+<style>
+  :root{
+    --bg:#0E1512;
+    --surface:#161F1A;
+    --surface2:#1E2A23;
+    --surface3:#232F28;
+    --border:#2A3830;
+    --text:#EDEDE2;
+    --text-muted:#93A296;
+    --text-dim:#5F6E63;
+    --accent:#F2B705;
+    --accent-dim:#8A6C1E;
+    --qb:#E2543B;
+    --rb:#4A90D9;
+    --wr:#B37FEB;
+    --te:#F2A65A;
+    --k:#58C4B0;
+    --dst:#9AA5AE;
+    --good:#6FBF73;
+    --warn:#E2544B;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .display{
+    font-family:'Anton','Arial Narrow',sans-serif;
+    letter-spacing:0.02em;
+    text-transform:uppercase;
+  }
+  .mono{ font-family:'IBM Plex Mono','SF Mono',Consolas,monospace; }
+
+  header{
+    padding:28px 20px 18px;
+    border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg, rgba(242,183,5,0.06), transparent);
+  }
+  .header-inner{ max-width:1100px; margin:0 auto; }
+  h1{
+    font-size:clamp(28px,5vw,44px);
+    margin:0 0 4px;
+    color:var(--text);
+    line-height:0.95;
+  }
+  h1 span{ color:var(--accent); }
+  .subtitle{ color:var(--text-muted); font-size:14px; margin-bottom:16px; }
+
+  .scoring-chips{
+    display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;
+  }
+  .chip{
+    font-size:11px; padding:4px 9px; border-radius:99px;
+    background:var(--surface2); border:1px solid var(--border);
+    color:var(--text-muted); font-family:'IBM Plex Mono',monospace;
+    white-space:nowrap;
+  }
+
+  .controls{
+    position:sticky; top:0; z-index:20;
+    background:rgba(14,21,18,0.97);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+    padding:12px 20px;
+  }
+  .controls-inner{
+    max-width:1100px; margin:0 auto;
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+  }
+  .pos-tabs{ display:flex; gap:4px; flex-wrap:wrap; }
+  .pos-tab{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px; font-weight:600;
+    padding:7px 12px; border-radius:7px;
+    background:var(--surface); border:1px solid var(--border);
+    color:var(--text-muted); cursor:pointer;
+    transition:all .12s ease;
+    user-select:none;
+  }
+  .pos-tab:hover{ border-color:var(--text-dim); color:var(--text); }
+  .pos-tab.active{ background:var(--surface3); color:var(--text); border-color:var(--accent); }
+  .pos-tab .dot{
+    display:inline-block; width:7px;height:7px;border-radius:50%;
+    margin-right:6px; vertical-align:middle;
+  }
+
+  .search-wrap{ position:relative; flex:1; min-width:160px; max-width:280px; }
+  .search-wrap input{
+    width:100%; padding:8px 12px 8px 30px; border-radius:7px;
+    background:var(--surface); border:1px solid var(--border);
+    color:var(--text); font-size:13px; outline:none;
+  }
+  .search-wrap input:focus{ border-color:var(--accent); }
+  .search-wrap svg{ position:absolute; left:9px; top:9px; opacity:0.5; }
+
+  .toggle-board{
+    display:flex; align-items:center; gap:7px;
+    padding:7px 12px; border-radius:7px;
+    background:var(--surface); border:1px solid var(--border);
+    color:var(--text-muted); cursor:pointer; font-size:12px;
+    font-family:'IBM Plex Mono',monospace; user-select:none;
+    white-space:nowrap;
+  }
+  .toggle-board.active{ border-color:var(--accent); color:var(--accent); background:rgba(242,183,5,0.08); }
+  .toggle-board .star{ font-size:13px; }
+
+  .count-badge{
+    margin-left:auto; font-size:12px; color:var(--text-dim);
+    font-family:'IBM Plex Mono',monospace;
+  }
+
+  main{ max-width:1100px; margin:0 auto; padding:16px 20px 80px; }
+
+  .empty-state{
+    text-align:center; padding:60px 20px; color:var(--text-dim);
+  }
+  .empty-state.error{ color:#E2A05B; }
+
+  .row{
+    display:flex; align-items:flex-start; gap:12px;
+    background:var(--surface); border:1px solid var(--border);
+    border-left:4px solid var(--pos-color, var(--border));
+    border-radius:var(--radius);
+    padding:12px 14px; margin-bottom:8px;
+    transition:background .12s ease;
+  }
+  .row:hover{ background:var(--surface2); }
+  .row.highlighted{
+    background:rgba(242,183,5,0.06);
+    border-color:rgba(242,183,5,0.4);
+    border-left-color:var(--accent);
+  }
+
+  .rank-badge{
+    min-width:38px; text-align:center;
+    font-family:'Anton',sans-serif; font-size:20px;
+    color:var(--text-dim); padding-top:2px;
+  }
+  .row.highlighted .rank-badge{ color:var(--accent); }
+
+  .row-main{ flex:1; min-width:0; }
+  .row-top{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .player-name{ font-size:15.5px; font-weight:600; color:var(--text); }
+  .pos-chip{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:700;
+    padding:1px 6px; border-radius:4px; color:#0E1512;
+    background:var(--pos-color, var(--text-dim));
+  }
+  .team-bye{ font-size:12px; color:var(--text-muted); font-family:'IBM Plex Mono',monospace; }
+  .tier-label{ font-size:11.5px; color:var(--text-dim); font-style:italic; }
+
+  .row-meta{
+    display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;
+  }
+  .tag{
+    font-size:11px; padding:3px 8px; border-radius:6px;
+    border:1px solid var(--border); color:var(--text-muted);
+    display:flex; align-items:center; gap:4px;
+  }
+  .tag.injury{ color:#F0A79A; border-color:rgba(226,84,75,0.35); background:rgba(226,84,75,0.07); }
+  .tag.schedule-good{ color:#9BDB9E; border-color:rgba(111,191,115,0.3); background:rgba(111,191,115,0.06); }
+  .tag.schedule-bad{ color:#E2A05B; border-color:rgba(226,160,91,0.3); background:rgba(226,160,91,0.06); }
+  .tag.ppg{ color:var(--text); font-family:'IBM Plex Mono',monospace; }
+
+  .row-actions{
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    padding-top:2px;
+  }
+  .star-btn{
+    background:none; border:none; cursor:pointer; font-size:20px;
+    color:var(--text-dim); line-height:1; padding:2px;
+    transition:transform .1s ease, color .1s ease;
+  }
+  .star-btn:hover{ transform:scale(1.15); }
+  .star-btn.active{ color:var(--accent); }
+  .note-btn{
+    background:none; border:1px solid var(--border); border-radius:6px;
+    cursor:pointer; font-size:11px; color:var(--text-dim);
+    padding:3px 7px; font-family:'IBM Plex Mono',monospace;
+    white-space:nowrap;
+  }
+  .note-btn.has-note{ color:var(--accent); border-color:var(--accent-dim); }
+
+  .note-panel{
+    display:none; margin-top:10px; padding-top:10px;
+    border-top:1px dashed var(--border);
+  }
+  .note-panel.open{ display:block; }
+  .note-panel textarea{
+    width:100%; min-height:56px; resize:vertical;
+    background:var(--surface3); border:1px solid var(--border);
+    border-radius:6px; color:var(--text); font-size:13px;
+    padding:8px 10px; font-family:inherit; outline:none;
+  }
+  .note-panel textarea:focus{ border-color:var(--accent); }
+  .save-hint{ font-size:10.5px; color:var(--text-dim); margin-top:4px; }
+
+  footer{
+    max-width:1100px; margin:0 auto; padding:20px; color:var(--text-dim);
+    font-size:11.5px; border-top:1px solid var(--border);
+  }
+  footer a{ color:var(--text-muted); }
+
+  ::-webkit-scrollbar{ width:10px; }
+  ::-webkit-scrollbar-track{ background:var(--bg); }
+  ::-webkit-scrollbar-thumb{ background:var(--surface3); border-radius:5px; }
+
+  @media (max-width:600px){
+    .row{ flex-wrap:wrap; }
+    .row-actions{ flex-direction:row; margin-left:auto; }
+    .count-badge{ width:100%; margin-left:0; order:10; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <h1 class="display">Draft War <span>Room</span></h1>
+    <div class="subtitle">Your 2026 fantasy board · rankings, injury flags, schedule notes, and a place to jot picks — saved in this browser</div>
+    <div class="scoring-chips" id="scoringChips"></div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="controls-inner">
+    <div class="pos-tabs" id="posTabs"></div>
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#93A296" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="searchInput" placeholder="Search a player or team…">
+    </div>
+    <div class="toggle-board" id="boardToggle"><span class="star">★</span> My Board</div>
+    <div class="count-badge" id="countBadge"></div>
+  </div>
+</div>
+
+<main id="main">
+  <div class="empty-state">Loading your board…</div>
+</main>
+
+<footer>
+  Rankings compiled from consensus half‑PPR draft boards, expert rankings, and kicker/defense projections current as of late August 2026 (FantasyPros ECR, RotoBaller, Football Nation, Yahoo Sports, PFN, STACKED, PFF). This is a snapshot, not a live feed — update <code>data.json</code> yourself as news breaks. Passing yardage is assumed at the standard 25 yds/pt since league rules didn't specify it. Schedule notes only show where a real source called out something specific.
+  <br><br>Your stars and notes are saved in <em>this browser</em> (localStorage) — they won't follow you to a different browser or device.
+</footer>
+
+<script>
+const POS_CONFIG = [
+  {key:'ALL', label:'All', color:'var(--text-muted)'},
+  {key:'QB', label:'QB', color:'var(--qb)'},
+  {key:'RB', label:'RB', color:'var(--rb)'},
+  {key:'WR', label:'WR', color:'var(--wr)'},
+  {key:'TE', label:'TE', color:'var(--te)'},
+  {key:'K', label:'K', color:'var(--k)'},
+  {key:'DST', label:'DST', color:'var(--dst)'},
+];
+
+function tierFor(rank){
+  if(rank<=10) return 'Round 1 Anchor';
+  if(rank<=20) return 'Elite Starter';
+  if(rank<=30) return 'High Leverage';
+  if(rank<=40) return 'Strong Starter';
+  if(rank<=50) return 'Value Pocket';
+  if(rank<=60) return 'Vet / QB Value';
+  if(rank<=70) return 'Middle Round Builder';
+  if(rank<=80) return 'Pressure Point';
+  if(rank<=90) return 'Ceiling Swing';
+  return 'Late Value';
+}
+
+let players = [];
+let BYE = {};
+let SCHEDULE_NOTE = {};
+let userState = {};      // { [id]: {star:bool, note:string} }
+let activePos = 'ALL';
+let searchTerm = '';
+let boardOnly = false;
+
+const STORAGE_KEY = 'fantasyBoard:userData:v1';
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    userState = raw ? JSON.parse(raw) : {};
+  }catch(e){ userState = {}; }
+}
+
+let saveTimer = null;
+function persistState(){
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(userState)); }
+    catch(e){ console.error('save failed', e); }
+  }, 200);
+}
+
+function getEntry(id){
+  if(!userState[id]) userState[id] = {star:false, note:''};
+  return userState[id];
+}
+
+function buildPlayers(data){
+  BYE = data.bye || {};
+  SCHEDULE_NOTE = data.scheduleNotes || {};
+  let idc = 1;
+  const out = [];
+
+  (data.topPlayers||[]).forEach(r=>{
+    const [rank,pos,posRank,name,team,injury] = r;
+    out.push({
+      id:'p'+(idc++), rank, pos, posRank:pos+posRank, name, team,
+      bye:BYE[team]||null, tier:tierFor(rank), injury:injury||null, ppg:null,
+    });
+  });
+
+  (data.qbDepth||[]).forEach((r,i)=>{
+    const [name,team,ppg,injury] = r;
+    out.push({
+      id:'p'+(idc++), rank:100+i+1, pos:'QB', posRank:'QB'+(13+i), name, team,
+      bye:BYE[team]||null, tier:'QB2 / Streamer', injury:injury||null, ppg:ppg,
+    });
+  });
+
+  (data.teDepth||[]).forEach((r,i)=>{
+    const [name,team,ppg,injury] = r;
+    out.push({
+      id:'p'+(idc++), rank:100+i+1, pos:'TE', posRank:'TE'+(11+i), name, team,
+      bye:BYE[team]||null, tier:'TE Depth / Streamer', injury:injury||null, ppg:ppg,
+    });
+  });
+
+  (data.kickers||[]).forEach((s,i)=>{
+    const parts = s.split('|');
+    const name = parts[0], team = parts[1], proj = parts[2]?Number(parts[2]):null;
+    const rank = i+1;
+    let tier = rank<=8?'K Tier 1':rank<=16?'K Tier 2':rank<=24?'K Tier 3':'K Tier 4 (Deep)';
+    out.push({
+      id:'p'+(idc++), rank, pos:'K', posRank:'K'+rank, name, team: team==='FA'?'FA':team,
+      bye: team==='FA'?null:(BYE[team]||null), tier, injury:null, ppg: proj,
+    });
+  });
+
+  (data.dst||[]).forEach((r,i)=>{
+    const [team,proj] = r;
+    const rank = i+1;
+    let tier = rank<=8?'DST Tier 1':rank<=16?'DST Tier 2':rank<=24?'DST Tier 3':'DST Tier 4 (Deep)';
+    out.push({
+      id:'p'+(idc++), rank, pos:'DST', posRank:'DST'+rank, name: team+' D/ST', team,
+      bye:BYE[team]||null, tier, injury:null, ppg: proj,
+    });
+  });
+
+  return out;
+}
+
+function renderScoringChips(rules){
+  document.getElementById('scoringChips').innerHTML =
+    (rules||[]).map(c=>`<span class="chip">${c}</span>`).join('');
+}
+
+function renderTabs(){
+  const wrap = document.getElementById('posTabs');
+  wrap.innerHTML = POS_CONFIG.map(p=>`
+    <div class="pos-tab ${activePos===p.key?'active':''}" data-pos="${p.key}">
+      ${p.key!=='ALL'?`<span class="dot" style="background:${p.color}"></span>`:''}${p.label}
+    </div>
+  `).join('');
+  wrap.querySelectorAll('.pos-tab').forEach(el=>{
+    el.addEventListener('click', ()=>{ activePos = el.dataset.pos; renderTabs(); renderList(); });
+  });
+}
+
+function posColorVar(pos){
+  const map = {QB:'var(--qb)',RB:'var(--rb)',WR:'var(--wr)',TE:'var(--te)',K:'var(--k)',DST:'var(--dst)'};
+  return map[pos]||'var(--border)';
+}
+
+function matchesFilter(p){
+  if(activePos!=='ALL' && p.pos!==activePos) return false;
+  if(boardOnly){
+    const e = userState[p.id];
+    if(!e || !e.star) return false;
+  }
+  if(searchTerm){
+    const t = searchTerm.toLowerCase();
+    if(!p.name.toLowerCase().includes(t) && !p.team.toLowerCase().includes(t)) return false;
+  }
+  return true;
+}
+
+function renderList(){
+  const main = document.getElementById('main');
+  const filtered = players.filter(matchesFilter).sort((a,b)=> (a.rank||999) - (b.rank||999));
+
+  const starCount = Object.values(userState).filter(v=>v && v.star).length;
+  document.getElementById('countBadge').textContent = `${filtered.length} shown · ${starCount} starred`;
+
+  if(filtered.length===0){
+    main.innerHTML = `<div class="empty-state">No players match. Try a different search or turn off "My Board".</div>`;
+    return;
+  }
+
+  main.innerHTML = filtered.map(p=>{
+    const entry = getEntry(p.id);
+    const isStar = !!entry.star;
+    const hasNote = !!(entry.note && entry.note.trim());
+    const byeText = p.bye ? `Bye ${p.bye}` : '';
+    const ppgText = p.ppg!=null ? (p.pos==='K'||p.pos==='DST' ? `${p.ppg} proj pts` : `${p.ppg} PPG`) : '';
+    const sched = SCHEDULE_NOTE[p.team];
+
+    return `
+    <div class="row ${isStar?'highlighted':''}" style="--pos-color:${posColorVar(p.pos)}" data-id="${p.id}">
+      <div class="rank-badge">${p.rank && p.rank<=999 ? p.rank : '—'}</div>
+      <div class="row-main">
+        <div class="row-top">
+          <span class="player-name">${p.name}</span>
+          <span class="pos-chip">${p.posRank}</span>
+          <span class="team-bye">${p.team}${byeText ? ' · '+byeText : ''}</span>
+        </div>
+        <div class="tier-label">${p.tier}</div>
+        <div class="row-meta">
+          ${ppgText ? `<span class="tag ppg">${ppgText}</span>` : ''}
+          ${p.injury ? `<span class="tag injury">⚑ ${p.injury}</span>` : ''}
+          ${sched ? `<span class="tag ${sched.type==='good'?'schedule-good':'schedule-bad'}">${sched.type==='good'?'↑':'↓'} ${sched.text}</span>` : ''}
+        </div>
+        <div class="note-panel" id="notepanel-${p.id}">
+          <textarea placeholder="Your notes on ${p.name}… (e.g. 'target in round 4', 'handcuff to X')" data-id="${p.id}">${entry.note||''}</textarea>
+          <div class="save-hint">Saved automatically in this browser.</div>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button class="star-btn ${isStar?'active':''}" data-id="${p.id}" title="Highlight this pick">${isStar?'★':'☆'}</button>
+        <button class="note-btn ${hasNote?'has-note':''}" data-id="${p.id}">${hasNote?'Note ✓':'+ Note'}</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  main.querySelectorAll('.star-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.id;
+      const e = getEntry(id);
+      e.star = !e.star;
+      persistState();
+      renderList();
+    });
+  });
+  main.querySelectorAll('.note-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const panel = document.getElementById('notepanel-'+btn.dataset.id);
+      panel.classList.toggle('open');
+      if(panel.classList.contains('open')){
+        panel.querySelector('textarea').focus();
+      }
+    });
+  });
+  main.querySelectorAll('textarea').forEach(ta=>{
+    ta.addEventListener('input', ()=>{
+      const e = getEntry(ta.dataset.id);
+      e.note = ta.value;
+      persistState();
+    });
+  });
+}
+
+function wireControls(){
+  document.getElementById('searchInput').addEventListener('input', (e)=>{
+    searchTerm = e.target.value;
+    renderList();
+  });
+  const boardToggle = document.getElementById('boardToggle');
+  boardToggle.addEventListener('click', ()=>{
+    boardOnly = !boardOnly;
+    boardToggle.classList.toggle('active', boardOnly);
+    renderList();
+  });
+}
+
+async function init(){
+  loadState();
+  renderTabs();
+  wireControls();
+  try{
+    const res = await fetch('data.json');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    renderScoringChips(data.scoringRules);
+    players = buildPlayers(data);
+    renderList();
+  }catch(err){
+    console.error(err);
+    document.getElementById('main').innerHTML =
+      `<div class="empty-state error">Couldn't load data.json (${err.message}).<br>
+       Make sure data.json is in the same folder as index.html, and that you're viewing this
+       through a real web server (like GitHub Pages) — opening the file directly by double-clicking
+       it will block this fetch in most browsers.</div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
